@@ -11,6 +11,48 @@ export default class CalendarPlugin {
     this.id = 'calendar';
     this.name = 'Calendar';
     this.version = '0.1.0';
+    this.calendarView = null;
+    this.scriptsLoaded = false;
+  }
+
+  /**
+   * Charger les dépendances du plugin (CSS et JS)
+   */
+  async loadDependencies() {
+    if (this.scriptsLoaded) return;
+
+    const pluginPath = 'plugins/pensine-plugin-calendar';
+
+    // Charger le CSS
+    const cssLink = document.createElement('link');
+    cssLink.rel = 'stylesheet';
+    cssLink.href = `${pluginPath}/styles/calendar.css`;
+    document.head.appendChild(cssLink);
+
+    // Charger ConfigurableComponent (dépendance de LinearCalendar)
+    await this.loadScript(`${pluginPath}/components/configurable-component.js`);
+    
+    // Charger LinearCalendar
+    await this.loadScript(`${pluginPath}/components/linear-calendar.js`);
+    
+    // Charger CalendarView
+    await this.loadScript(`${pluginPath}/views/calendar-view.js`);
+
+    this.scriptsLoaded = true;
+    console.log('[Calendar] Dependencies loaded');
+  }
+
+  /**
+   * Charger un script de manière asynchrone
+   */
+  loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+      document.head.appendChild(script);
+    });
   }
 
   /**
@@ -18,6 +60,9 @@ export default class CalendarPlugin {
    */
   async enable() {
     console.log('[Calendar] Plugin enabled');
+    
+    // Charger les dépendances (CSS + JS)
+    await this.loadDependencies();
     
     // Enregistrer les routes
     this.registerRoutes();
@@ -37,6 +82,12 @@ export default class CalendarPlugin {
    */
   async disable() {
     console.log('[Calendar] Plugin disabled');
+    
+    // Détruire la vue si elle existe
+    if (this.calendarView && typeof this.calendarView.destroy === 'function') {
+      this.calendarView.destroy();
+    }
+    this.calendarView = null;
     
     // Nettoyer les listeners
     this.context.events.off('calendar:*', this.id);
@@ -64,14 +115,19 @@ export default class CalendarPlugin {
    * Enregistrer les listeners d'événements
    */
   registerEventListeners() {
-    // Clic sur un jour
-    this.context.events.on('calendar:day-click', (data) => {
-      this.handleDayClick(data);
-    }, this.id);
-
     // Création d'événement
     this.context.events.on('calendar:event-create', (data) => {
       this.handleEventCreate(data);
+    }, this.id);
+
+    // Mise à jour d'événement
+    this.context.events.on('calendar:event-update', (data) => {
+      this.handleEventUpdate(data);
+    }, this.id);
+
+    // Mise à jour depuis le journal
+    this.context.events.on('journal:entry-saved', (data) => {
+      this.handleJournalEntrySaved(data);
     }, this.id);
   }
 
@@ -79,24 +135,29 @@ export default class CalendarPlugin {
    * Render la vue calendrier principale
    */
   async renderCalendarView() {
-    // TODO: Implémenter le rendu du calendrier linéaire
-    return '<div id="calendar-view">Calendar View - À implémenter</div>';
+    try {
+      // Créer l'instance de CalendarView si nécessaire
+      if (!this.calendarView) {
+        this.calendarView = new CalendarView(this.context);
+      }
+
+      // Render et retourner le container
+      const container = await this.calendarView.render();
+      return container;
+    } catch (error) {
+      console.error('[Calendar] Error rendering calendar view:', error);
+      return `<div class="error">Erreur lors du chargement du calendrier: ${error.message}</div>`;
+    }
   }
 
   /**
    * Render la vue d'un jour spécifique
    */
   async renderDayView(date) {
-    // TODO: Implémenter le rendu de la vue jour
-    return `<div id="day-view">Day View - ${date} - À implémenter</div>`;
-  }
-
-  /**
-   * Gérer le clic sur un jour
-   */
-  handleDayClick(data) {
-    console.log('[Calendar] Day clicked:', data);
-    this.context.router.navigate(`/calendar/${data.date}`);
+    // Pour l'instant, rediriger vers le journal
+    // Plus tard, on pourra créer une vue jour dédiée
+    this.context.router.navigate(`/journal/${date}`);
+    return null;
   }
 
   /**
@@ -105,13 +166,46 @@ export default class CalendarPlugin {
   async handleEventCreate(data) {
     console.log('[Calendar] Event create:', data);
     
-    // Sauvegarder l'événement
-    await this.context.storage.writeJSON(
-      `calendar/events/${data.date}/${data.id}.json`,
-      data
-    );
+    try {
+      // Sauvegarder l'événement
+      await this.context.storage.writeJSON(
+        `calendar/events/${data.date}/${data.id}.json`,
+        data
+      );
+      
+      // Émettre confirmation
+      this.context.events.emit('calendar:event-created', data);
+
+      // Mettre à jour la vue si elle existe
+      if (this.calendarView) {
+        this.calendarView.markDate(data.date);
+      }
+    } catch (error) {
+      console.error('[Calendar] Error creating event:', error);
+      this.context.events.emit('calendar:event-error', { error: error.message });
+    }
+  }
+
+  /**
+   * Gérer la mise à jour d'un événement (ex: jour avec journal)
+   */
+  async handleEventUpdate(data) {
+    console.log('[Calendar] Event update:', data);
     
-    // Émettre confirmation
-    this.context.events.emit('calendar:event-created', data);
+    if (this.calendarView && data.date) {
+      this.calendarView.markDate(data.date);
+    }
+  }
+
+  /**
+   * Gérer la sauvegarde d'une entrée de journal
+   */
+  handleJournalEntrySaved(data) {
+    console.log('[Calendar] Journal entry saved:', data.date);
+    
+    // Marquer ce jour dans le calendrier
+    if (this.calendarView && data.date) {
+      this.calendarView.markDate(data.date);
+    }
   }
 }
