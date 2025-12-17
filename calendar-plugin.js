@@ -11,8 +11,78 @@ export default class CalendarPlugin {
     this.id = 'calendar';
     this.name = 'Calendar';
     this.version = '0.1.0';
+    this.icon = '📅';
     this.calendarView = null;
     this.scriptsLoaded = false;
+  }
+
+  /**
+   * Schéma de configuration JSON Schema
+   */
+  static getConfigSchema() {
+    return {
+      title: 'Calendar Configuration',
+      description: 'Configure the linear calendar display and behavior',
+      type: 'object',
+      properties: {
+        startWeekOn: {
+          type: 'string',
+          title: 'Week starts on',
+          description: 'First day of the week',
+          enum: ['monday', 'sunday'],
+          default: 'monday'
+        },
+        showWeekNumbers: {
+          type: 'boolean',
+          title: 'Show week numbers',
+          description: 'Display ISO week numbers in calendar',
+          default: false
+        },
+        monthsToDisplay: {
+          type: 'number',
+          title: 'Months to display',
+          description: 'Number of months to load initially',
+          minimum: 1,
+          maximum: 12,
+          default: 6
+        },
+        highlightToday: {
+          type: 'boolean',
+          title: 'Highlight today',
+          description: 'Visually highlight the current day',
+          default: true
+        },
+        scrollBehavior: {
+          type: 'string',
+          title: 'Scroll behavior',
+          description: 'How calendar scrolls to dates',
+          enum: ['smooth', 'instant'],
+          default: 'smooth'
+        },
+        colorScheme: {
+          type: 'string',
+          title: 'Color scheme',
+          description: 'Monthly color rotation system',
+          enum: ['default', 'pastel', 'vibrant'],
+          default: 'default'
+        }
+      },
+      required: ['startWeekOn', 'monthsToDisplay']
+    };
+  }
+
+  /**
+   * Valeurs par défaut de la configuration
+   */
+  static getDefaultConfig() {
+    return {
+      startWeekOn: 'monday',
+      showWeekNumbers: false,
+      monthsToDisplay: 6,
+      highlightToday: true,
+      scrollBehavior: 'smooth',
+      colorScheme: 'default'
+    };
   }
 
   /**
@@ -64,14 +134,27 @@ export default class CalendarPlugin {
     // Charger les dépendances (CSS + JS)
     await this.loadDependencies();
     
+    // Enregistrer le schéma de configuration
+    if (this.context.config && typeof this.context.config.registerPluginSchema === 'function') {
+      this.context.config.registerPluginSchema(
+        this.id,
+        CalendarPlugin.getConfigSchema(),
+        CalendarPlugin.getDefaultConfig()
+      );
+    }
+    
+    // Charger la configuration
+    this.config = this.context.config 
+      ? await this.context.config.getPluginConfig(this.id)
+      : CalendarPlugin.getDefaultConfig();
+    
+    console.log('[Calendar] Configuration loaded:', this.config);
+    
     // Enregistrer les routes
     this.registerRoutes();
     
     // Écouter les événements
     this.registerEventListeners();
-    
-    // Charger la configuration
-    this.config = await this.context.config.get('calendar') || {};
     
     // Émettre événement d'activation
     this.context.events.emit('plugin:enabled', { pluginId: this.id });
