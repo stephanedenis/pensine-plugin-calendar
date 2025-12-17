@@ -1,0 +1,33 @@
+{
+  "id": "calendar",
+  "name": "Calendar",
+  "version": "0.1.0",
+  "description": "Calendrier linéaire interactif avec événements et journaux",
+  "author": "Stéphane Denis",
+  "license": "MIT",
+  "main": "calendar-plugin.js",
+  "dependencies": [],
+  "permissions": [
+    "storage:read",
+    "storage:write",
+    "events:emit",
+    "ui:render"
+  ],
+  "routes": [
+    {
+      "path": "/calendar",
+      "view": "views/linear-view.js",
+      "title": "Calendrier"
+    },
+    {
+      "path": "/calendar/:date",
+      "view": "views/day-view.js",
+      "title": "Jour"
+    }
+  ],
+  "config": {
+    "startWeekOn": "monday",
+    "showWeekNumbers": true,
+    "monthsToDisplay": 6
+  }
+}
