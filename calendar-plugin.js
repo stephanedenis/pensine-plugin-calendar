@@ -1,6 +1,6 @@
 /**
  * Pensine Calendar Plugin
- * 
+ *
  * Plugin de calendrier linéaire pour Pensine
  * @version 0.1.0
  */
@@ -101,10 +101,10 @@ export default class CalendarPlugin {
 
     // Charger ConfigurableComponent (dépendance de LinearCalendar)
     await this.loadScript(`${pluginPath}/components/configurable-component.js`);
-    
+
     // Charger LinearCalendar
     await this.loadScript(`${pluginPath}/components/linear-calendar.js`);
-    
+
     // Charger CalendarView
     await this.loadScript(`${pluginPath}/views/calendar-view.js`);
 
@@ -130,10 +130,10 @@ export default class CalendarPlugin {
    */
   async enable() {
     console.log('[Calendar] Plugin enabled');
-    
+
     // Charger les dépendances (CSS + JS)
     await this.loadDependencies();
-    
+
     // Enregistrer le schéma de configuration
     if (this.context.config && typeof this.context.config.registerPluginSchema === 'function') {
       this.context.config.registerPluginSchema(
@@ -142,20 +142,20 @@ export default class CalendarPlugin {
         CalendarPlugin.getDefaultConfig()
       );
     }
-    
+
     // Charger la configuration
-    this.config = this.context.config 
+    this.config = this.context.config
       ? await this.context.config.getPluginConfig(this.id)
       : CalendarPlugin.getDefaultConfig();
-    
+
     console.log('[Calendar] Configuration loaded:', this.config);
-    
+
     // Enregistrer les routes
     this.registerRoutes();
-    
+
     // Écouter les événements
     this.registerEventListeners();
-    
+
     // Émettre événement d'activation
     this.context.events.emit('plugin:enabled', { pluginId: this.id });
   }
@@ -165,16 +165,16 @@ export default class CalendarPlugin {
    */
   async disable() {
     console.log('[Calendar] Plugin disabled');
-    
+
     // Détruire la vue si elle existe
     if (this.calendarView && typeof this.calendarView.destroy === 'function') {
       this.calendarView.destroy();
     }
     this.calendarView = null;
-    
+
     // Nettoyer les listeners
     this.context.events.off('calendar:*', this.id);
-    
+
     // Émettre événement de désactivation
     this.context.events.emit('plugin:disabled', { pluginId: this.id });
   }
@@ -248,14 +248,14 @@ export default class CalendarPlugin {
    */
   async handleEventCreate(data) {
     console.log('[Calendar] Event create:', data);
-    
+
     try {
       // Sauvegarder l'événement
       await this.context.storage.writeJSON(
         `calendar/events/${data.date}/${data.id}.json`,
         data
       );
-      
+
       // Émettre confirmation
       this.context.events.emit('calendar:event-created', data);
 
@@ -274,7 +274,7 @@ export default class CalendarPlugin {
    */
   async handleEventUpdate(data) {
     console.log('[Calendar] Event update:', data);
-    
+
     if (this.calendarView && data.date) {
       this.calendarView.markDate(data.date);
     }
@@ -285,7 +285,7 @@ export default class CalendarPlugin {
    */
   handleJournalEntrySaved(data) {
     console.log('[Calendar] Journal entry saved:', data.date);
-    
+
     // Marquer ce jour dans le calendrier
     if (this.calendarView && data.date) {
       this.calendarView.markDate(data.date);

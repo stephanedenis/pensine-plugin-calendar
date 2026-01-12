@@ -225,6 +225,6 @@ Respecter ces conventions pour compatibilité inter-plugins.
 
 ---
 
-**Date** : 17 décembre 2025  
-**Statut** : ✅ Migration complète  
+**Date** : 17 décembre 2025
+**Statut** : ✅ Migration complète
 **Prochaine étape** : Intégration dans app.js

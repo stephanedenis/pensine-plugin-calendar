@@ -64,7 +64,7 @@ class CalendarView {
       // Charger les événements du calendrier
       const eventsPath = 'calendar/events/';
       const eventFiles = await this.context.storage.list(eventsPath);
-      
+
       const markedDates = [];
       for (const eventFile of eventFiles) {
         const event = await this.context.storage.readJSON(eventFile);
@@ -76,7 +76,7 @@ class CalendarView {
       // Charger les jours avec journal
       const journalPath = 'journal/entries/';
       const journalFiles = await this.context.storage.list(journalPath);
-      
+
       for (const journalFile of journalFiles) {
         // Extraire la date du nom de fichier (format: YYYY-MM-DD.json)
         const match = journalFile.match(/(\d{4}-\d{2}-\d{2})\.json$/);
@@ -97,7 +97,7 @@ class CalendarView {
    */
   handleDayClick(date, events, mouseEvent) {
     console.log('[CalendarView] Day click:', date);
-    
+
     // Émettre événement pour les autres plugins
     this.context.events.emit('calendar:day-click', {
       date,
@@ -114,7 +114,7 @@ class CalendarView {
    */
   handleWeekLoad(direction, weekStart) {
     console.log('[CalendarView] Week load:', direction, weekStart);
-    
+
     // Émettre événement
     this.context.events.emit('calendar:week-load', {
       direction,
@@ -127,7 +127,7 @@ class CalendarView {
    */
   async updateMarkedDates() {
     if (!this.calendar) return;
-    
+
     const markedDates = await this.loadMarkedDates();
     this.calendar.setMarkedDates(markedDates);
   }
